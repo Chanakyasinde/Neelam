@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sanjivani Hospital · Appointments</title>
+<meta name="description" content="Book an OPD appointment at Sanjivani Hospital. Choose a department and doctor, pick a free time slot and get a token number.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Theme (light / dark via CSS variables) ---------- */
+  :root {
+    --primary: #0B7A75;
+    --primary-dark: #08605c;
+    --primary-soft: #e3f1f0;
+    --on-primary: #ffffff;
+    --bg: #f3f7f7;
+    --card: #ffffff;
+    --text: #12302e;
+    --muted: #4f6664;
+    --border: #d3e3e2;
+    --disabled-bg: #eef2f2;
+    --disabled-text: #8a9b9a;
+    --danger: #B3261E;
+    --danger-soft: #fbe9e7;
+    --success: #1e6b3a;
+    --success-soft: #e2f3e8;
+    --neutral-soft: #eceff1;
+    --shadow: 0 1px 2px rgba(0,0,0,.04);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #3cc2bb;
+      --primary-dark: #5fd3cd;
+      --primary-soft: #143634;
+      --on-primary: #062523;
+      --bg: #0e1a19;
+      --card: #152423;
+      --text: #e4f0ef;
+      --muted: #a4bab8;
+      --border: #2a4240;
+      --disabled-bg: #1b2c2b;
+      --disabled-text: #6a807e;
+      --danger: #ff8a80;
+      --danger-soft: #3a1d1b;
+      --success: #7fd6a0;
+      --success-soft: #16301f;
+      --neutral-soft: #223231;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.45;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: "Bricolage Grotesque", system-ui, sans-serif; margin: 0; line-height: 1.2; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  button { font: inherit; cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  :focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: #0B7A75; color: #fff;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 10px clamp(16px, 2.5vw, 40px);
+  }
+  @media (prefers-color-scheme: dark) { .topbar { background: #0a4d4a; } }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 1.45rem; white-space: nowrap; }
+  .brand span.logo { font-size: 1.6rem; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    background: transparent; border: 0; color: #e2f4f3;
+    padding: 10px 22px; border-radius: 8px; font-size: 1.1rem; white-space: nowrap; min-height: 44px;
+  }
+  .tab:hover { background: rgba(255,255,255,.12); }
+  .tab[aria-selected="true"] { background: #fff; color: #0B7A75; font-weight: 700; }
+
+  /* ---------- Layout ---------- */
+  main { max-width: 1640px; margin: 0 auto; padding: 32px clamp(16px, 4vw, 76px) 60px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 32px; align-items: start; }
+  .card { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); padding: 30px 32px; box-shadow: var(--shadow); }
+  .page-title { font-size: 1.8rem; margin-bottom: 22px; }
+  .card h2 { font-size: 1.7rem; margin: 26px 0 22px; }
+
+  /* ---------- Stepper ---------- */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .step {
+    border: 0; border-radius: 8px; padding: 10px 8px; font-size: 1.1rem; min-height: 44px;
+    background: var(--neutral-soft); color: var(--muted);
+  }
+  .step.done { background: var(--primary-soft); color: var(--primary); }
+  .step.active { background: var(--primary); color: var(--on-primary); font-weight: 700; }
+
+  /* ---------- Option cards ---------- */
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .option {
+    text-align: left; background: var(--card); color: var(--text);
+    border: 3px solid var(--border); border-radius: 12px; padding: 22px 26px; min-height: 116px;
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    transition: border-color .15s, background .15s;
+  }
+  .option:hover { border-color: var(--primary); }
+  .option.selected { border-color: var(--primary); background: var(--primary-soft); }
+  .option strong { font-size: 1.3rem; }
+  .option small { color: var(--muted); font-size: 1.05rem; }
+  .option .fee { color: var(--primary); font-weight: 700; font-size: 1.05rem; margin-top: 4px; }
+
+  /* ---------- Days and slots ---------- */
+  .days { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 26px; }
+  .day {
+    background: var(--card); color: var(--text); border: 3px solid var(--border); border-radius: 12px;
+    padding: 8px 16px; min-width: 96px; line-height: 1.2; font-size: 1.1rem;
+  }
+  .day b { font-weight: 700; }
+  .day:hover { border-color: var(--primary); }
+  .day.selected { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+  .slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .slot {
+    font-family: "IBM Plex Mono", monospace; font-size: 1.15rem;
+    background: var(--card); color: var(--primary); border: 3px solid var(--primary); border-radius: 8px;
+    padding: 12px 6px; min-height: 52px;
+  }
+  .slot:hover:not(:disabled) { background: var(--primary-soft); }
+  .slot.selected { background: var(--primary); color: var(--on-primary); }
+  .slot:disabled { background: var(--disabled-bg); color: var(--disabled-text); border-color: var(--border); text-decoration: line-through; }
+  .lunch { text-align: center; color: var(--muted); margin: 26px 0 22px; font-size: 1rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; color: var(--muted); font-size: .95rem; margin-top: 18px; }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 2px solid var(--primary); }
+  .legend i.sel { background: var(--primary); }
+  .legend i.off { background: var(--disabled-bg); border-color: var(--border); }
+
+  /* ---------- Form ---------- */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 24px; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-weight: 700; font-size: 1.15rem; }
+  input, textarea {
+    font: inherit; font-size: 1.15rem; color: var(--text); background: var(--card);
+    border: 3px solid var(--border); border-radius: 10px; padding: 14px 18px; width: 100%;
+  }
+  textarea { resize: vertical; min-height: 96px; }
+  input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  .invalid input, .invalid textarea { border-color: var(--danger); }
+  .err { color: var(--danger); font-size: 1rem; }
+  .alert { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-weight: 600; }
+  .hint { color: var(--muted); font-size: .95rem; font-weight: 400; }
+
+  /* ---------- Buttons ---------- */
+  .actions { display: flex; gap: 16px; margin-top: 30px; flex-wrap: wrap; }
+  .btn {
+    border-radius: 10px; padding: 14px 36px; font-size: 1.2rem; font-weight: 700; min-height: 52px;
+    border: 3px solid var(--primary); background: var(--primary); color: var(--on-primary);
+  }
+  .btn:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+  .btn:disabled { opacity: .45; }
+  .btn.ghost { background: transparent; color: var(--primary); }
+  .btn.ghost:hover { background: var(--primary-soft); }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn.danger:hover { filter: brightness(.92); background: var(--danger); border-color: var(--danger); }
+  .btn.small { padding: 6px 22px; min-height: 44px; font-size: 1.1rem; }
+
+  /* ---------- Summary ---------- */
+  .summary { position: sticky; top: 100px; min-height: 100%; }
+  .summary h3 { font-size: 1.6rem; margin-bottom: 14px; }
+  .summary dl { margin: 0; }
+  .summary dt { color: var(--muted); font-size: 1.15rem; margin-top: 12px; }
+  .summary dd { margin: 0; font-weight: 700; font-size: 1.25rem; }
+  .summary .fee-line { border-top: 2px dashed var(--border); margin-top: 18px; padding-top: 16px; font-family: "Bricolage Grotesque", sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--primary); }
+
+  /* ---------- Confirmation ---------- */
+  .token { background: var(--primary-soft); color: var(--primary); border-radius: 12px; text-align: center; font-size: clamp(1.6rem, 4vw, 2.6rem); letter-spacing: 2px; padding: 22px 12px; margin: 24px 0; word-break: break-all; }
+  .confirm-title { font-size: 1.8rem; margin-bottom: 18px; }
+
+  /* ---------- Appointment list ---------- */
+  .appt { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; padding: 26px 32px; }
+  .appt .who { font-size: 1.3rem; }
+  .appt .meta { color: var(--muted); font-size: 1.2rem; }
+  .appt .meta .mono { font-size: 1.05rem; }
+  .appt .side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+  .badge { border-radius: 999px; padding: 2px 14px; font-weight: 700; font-size: 1rem; }
+  .badge.confirmed { background: var(--success-soft); color: var(--success); }
+  .badge.completed { background: var(--neutral-soft); color: var(--muted); }
+  .badge.cancelled { background: var(--danger-soft); color: var(--danger); }
+  .appt.is-cancelled .who, .appt.is-cancelled .meta { opacity: .65; }
+  .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty p { margin: 0 0 20px; font-size: 1.2rem; }
+
+  /* ---------- Doctors ---------- */
+  .doctors { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+  .doc-card { display: flex; flex-direction: column; gap: 6px; }
+  .doc-card .dept { color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: .9rem; letter-spacing: .6px; }
+  .doc-card h3 { font-size: 1.4rem; }
+  .doc-card p { margin: 0; color: var(--muted); }
+  .doc-card .fee { font-weight: 700; color: var(--text); font-size: 1.15rem; margin: 6px 0 12px; }
+  .doc-card .btn { align-self: flex-start; }
+
+  /* ---------- Modal ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(10, 30, 28, .55); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+  .modal { background: var(--card); border-radius: 18px; padding: 36px 40px; max-width: 640px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+  .modal h3 { font-size: 1.7rem; margin-bottom: 16px; }
+  .modal p { margin: 0; font-size: 1.2rem; }
+  .modal .actions { margin-top: 26px; }
+
+  footer { text-align: center; color: var(--muted); font-size: .9rem; padding: 0 16px 30px; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .summary { position: static; }
+    .slots { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 700px) {
+    body { font-size: 16px; }
+    .topbar { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; }
+    .brand { font-size: 1.15rem; }
+    .tab { padding: 8px 14px; font-size: 1rem; }
+    main { padding: 20px 12px 40px; }
+    .card { padding: 20px 16px; }
+    .card h2 { font-size: 1.4rem; margin: 20px 0 16px; }
+    .steps { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .step { font-size: .95rem; }
+    .grid3 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .option { padding: 14px; min-height: 96px; }
+    .option strong { font-size: 1.1rem; }
+    .option small { font-size: .95rem; }
+    .day { min-width: 0; flex: 1 0 calc(25% - 12px); padding: 6px 8px; font-size: 1rem; }
+    .slots { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .slot { font-size: 1rem; }
+    .form-grid { grid-template-columns: 1fr; }
+    .btn { padding: 12px 22px; font-size: 1.1rem; flex: 1; }
+    .appt { flex-direction: column; align-items: stretch; padding: 18px 16px; }
+    .appt .side { flex-direction: row; justify-content: space-between; align-items: center; }
+    .appt .side .btn { flex: 0; }
+    .modal { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo" aria-hidden="true">🩺</span> Sanjivani Hospital · Appointments</div>
+  <nav class="tabs" role="tablist" aria-label="Main">
+    <button class="tab" role="tab" data-action="tab" data-tab="book">Book appointment</button>
+    <button class="tab" role="tab" data-action="tab" data-tab="mine">My appointments</button>
+    <button class="tab" role="tab" data-action="tab" data-tab="doctors">Our doctors</button>
+  </nav>
+</header>
+
+<main id="app" aria-live="polite"></main>
+<div id="modal-root"></div>
+
+<footer>Prototype · Appointments are saved only in this browser · Doctors shown are fictional.</footer>
+
+<script>
+/* =========================================================
+   Sanjivani Hospital – Appointment System
+   Plain JavaScript, no framework. Data saved in localStorage.
+   ========================================================= */
+
+/* ---------- Data ---------- */
+const DEPARTMENTS = [
+  { id: "cardio", name: "Cardiology",       desc: "Heart and blood pressure" },
+  { id: "ortho",  name: "Orthopaedics",     desc: "Bones and joints" },
+  { id: "paed",   name: "Paediatrics",      desc: "Children up to 14 years", maxAge: 14 },
+  { id: "gyn",    name: "Gynaecology",      desc: "Women's health" },
+  { id: "gen",    name: "General Medicine", desc: "Fever, cold, general check-up" },
+  { id: "derm",   name: "Dermatology",      desc: "Skin and hair" }
+];
+
+const DOCTORS = [
+  { id: "d1", name: "Dr. Anil Mehta",     dept: "cardio", qual: "MBBS, MD, DM (Cardiology)", exp: 18, fee: 800 },
+  { id: "d2", name: "Dr. Rajesh Iyer",    dept: "ortho",  qual: "MBBS, MS (Orthopaedics)",   exp: 14, fee: 700 },
+  { id: "d3", name: "Dr. Priya Desai",    dept: "paed",   qual: "MBBS, MD (Paediatrics)",    exp: 11, fee: 500 },
+  { id: "d4", name: "Dr. Meera Joshi",    dept: "gyn",    qual: "MBBS, MS (Obs & Gynae)",    exp: 16, fee: 600 },
+  { id: "d5", name: "Dr. Suresh Patel",   dept: "gen",    qual: "MBBS, MD (Medicine)",       exp: 20, fee: 400 },
+  { id: "d6", name: "Dr. Farhan Qureshi", dept: "gen",    qual: "MBBS, DNB (Family Medicine)", exp: 8, fee: 300 },
+  { id: "d7", name: "Dr. Neha Kapoor",    dept: "derm",   qual: "MBBS, MD (Dermatology)",    exp: 9,  fee: 600 }
+];
+
+// 30-minute slots, 9:00 to 17:00 with lunch 13:00–14:00
+const MORNING   = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30"];
+const AFTERNOON = ["14:00","14:30","15:00","15:30","16:00","16:30"];
+
+const STORAGE_KEY = "sanjivani-appointments";
+
+/* ---------- Storage ---------- */
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings)); }
+  catch { alert("Could not save. Your browser storage may be full or disabled."); }
+}
+let bookings = load();
+
+/* ---------- App state ---------- */
+const state = {
+  tab: "book",
+  step: 1,
+  dept: null,
+  doc: null,
+  date: null,
+  slot: null,
+  form: { name: "", age: "", mobile: "", reason: "" },
+  errors: {},
+  alert: "",
+  confirmed: null   // booking object after success
+};
+
+/* ---------- Helpers ---------- */
+const $ = (sel) => document.querySelector(sel);
+const pad = (n) => String(n).padStart(2, "0");
+const isoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseDate = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
+const dept = (id) => DEPARTMENTS.find((x) => x.id === id);
+const doctor = (id) => DOCTORS.find((x) => x.id === id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function fmtTime(slot) {
+  let [h, m] = slot.split(":").map(Number);
+  const ap = h >= 12 ? "pm" : "am";
+  h = h % 12 || 12;
+  return `${h}:${pad(m)} ${ap}`;
+}
+function fmtShort(iso) {
+  return parseDate(iso).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+}
+function fmtLong(iso) {
+  return parseDate(iso).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+function slotDate(iso, slot) {
+  const d = parseDate(iso);
+  const [h, m] = slot.split(":").map(Number);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+// Next seven working days starting today (Sundays skipped)
+function workdays() {
+  const days = [];
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  while (days.length < 7) {
+    if (d.getDay() !== 0) days.push(isoDate(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
+}
+
+// Slot already booked (and not cancelled) for this doctor
+function taken(docId, date, slot) {
+  return bookings.some((b) => b.doc === docId && b.date === date && b.slot === slot && b.status !== "cancelled");
+}
+// Slot time has already passed
+function past(date, slot) {
+  return slotDate(date, slot) <= new Date();
+}
+// Status shown to the user
+function statusOf(b) {
+  if (b.status === "cancelled") return "cancelled";
+  return slotDate(b.date, b.slot) <= new Date() ? "completed" : "confirmed";
+}
+// Token: SH-YYYYMMDD-NNN, numbered per appointment day
+function makeToken(date) {
+  const n = bookings.filter((b) => b.date === date).length + 1;
+  return `SH-${date.replace(/-/g, "")}-${String(n).padStart(3, "0")}`;
+}
+
+/* ---------- Rendering ---------- */
+function render(keepScroll = true) {
+  const y = window.scrollY;
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === state.tab));
+  const app = $("#app");
+  if (state.tab === "book") app.innerHTML = state.confirmed ? viewConfirmed() : viewBook();
+  else if (state.tab === "mine") app.innerHTML = viewMine();
+  else app.innerHTML = viewDoctors();
+  if (keepScroll) window.scrollTo(0, y); else window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function viewBook() {
+  const labels = ["Department", "Doctor", "Date and time", "Your details"];
+  const stepper = labels.map((l, i) => {
+    const n = i + 1;
+    const cls = n === state.step ? "active" : n < state.step ? "done" : "";
+    const can = n < state.step;
+    return `<button class="step ${cls}" ${can ? `data-action="goto" data-step="${n}"` : "disabled"} ${n === state.step ? 'aria-current="step"' : ""}>${n} ${l}</button>`;
+  }).join("");
+
+  let body = "";
+  if (state.step === 1) body = stepDept();
+  if (state.step === 2) body = stepDoctor();
+  if (state.step === 3) body = stepTime();
+  if (state.step === 4) body = stepDetails();
+
+  return `<div class="layout">
+    <section class="card"><div class="steps">${stepper}</div>${body}</section>
+    ${viewSummary()}
+  </div>`;
+}
+
+function stepDept() {
+  return `<h2>Which department do you need?</h2>
+  <div class="grid3">${DEPARTMENTS.map((d) => `
+    <button class="option ${state.dept === d.id ? "selected" : ""}" data-action="dept" data-id="${d.id}">
+      <strong>${d.name}</strong><small>${d.desc}</small>
+    </button>`).join("")}
+  </div>`;
+}
+
+function stepDoctor() {
+  const list = DOCTORS.filter((d) => d.dept === state.dept);
+  return `<h2>Choose your doctor</h2>
+  <div class="grid3">${list.map((d) => `
+    <button class="option ${state.doc === d.id ? "selected" : ""}" data-action="doc" data-id="${d.id}">
+      <strong>${d.name}</strong>
+      <small>${d.qual}</small>
+      <small>${d.exp} years experience</small>
+      <span class="fee">Fee ₹${d.fee}</span>
+    </button>`).join("")}
+  </div>
+  <div class="actions"><button class="btn ghost" data-action="back">← Back</button></div>`;
+}
+
+function slotButtons(list) {
+  return list.map((s) => {
+    const off = taken(state.doc, state.date, s) || past(state.date, s);
+    const sel = state.slot === s;
+    return `<button class="slot ${sel ? "selected" : ""}" data-action="slot" data-slot="${s}" ${off ? "disabled aria-disabled=\"true\"" : ""} aria-pressed="${sel}">${fmtTime(s)}</button>`;
+  }).join("");
+}
+
+function stepTime() {
+  const days = workdays();
+  if (!state.date) state.date = days[0];
+  const dayBtns = days.map((iso) => {
+    const d = parseDate(iso);
+    const wd = d.toLocaleDateString("en-IN", { weekday: "short" });
+    const dm = d.toLocaleDateString("en-IN", { month: "short" });
+    return `<button class="day ${state.date === iso ? "selected" : ""}" data-action="day" data-date="${iso}">${wd}<br><b>${d.getDate()}</b> ${dm}</button>`;
+  }).join("");
+
+  const allOff = [...MORNING, ...AFTERNOON].every((s) => taken(state.doc, state.date, s) || past(state.date, s));
+
+  return `<h2>Pick a day and time</h2>
+  <div class="days">${dayBtns}</div>
+  ${allOff ? `<div class="alert">No free slots left on this day. Please pick another day.</div>` : ""}
+  <div class="slots">${slotButtons(MORNING)}</div>
+  <div class="lunch">🍽️ Lunch break 1:00 pm – 2:00 pm</div>
+  <div class="slots">${slotButtons(AFTERNOON)}</div>
+  <div class="legend"><span><i></i>Available</span><span><i class="sel"></i>Selected</span><span><i class="off"></i>Booked or past</span></div>
+  <div class="actions">
+    <button class="btn ghost" data-action="back">← Back</button>
+    <button class="btn" data-action="next" ${state.slot ? "" : "disabled"}>Continue →</button>
+  </div>`;
+}
+
+function fieldWrap(key, inner) {
+  const e = state.errors[key];
+  return `<div class="field ${key === "mobile" || key === "reason" ? "full" : ""} ${e ? "invalid" : ""}">${inner}${e ? `<span class="err" id="err-${key}">${e}</span>` : ""}</div>`;
+}
+
+function stepDetails() {
+  const f = state.form;
+  const d = dept(state.dept);
+  return `<h2>Patient details</h2>
+  ${state.alert ? `<div class="alert" role="alert">${state.alert}</div>` : ""}
+  <form id="details" novalidate>
+    <div class="form-grid">
+      ${fieldWrap("name", `<label for="name">Patient's full name</label>
+        <input id="name" name="name" autocomplete="name" value="${esc(f.name)}" ${state.errors.name ? 'aria-invalid="true" aria-describedby="err-name"' : ""}>`)}
+      ${fieldWrap("age", `<label for="age">Age ${d.maxAge ? `<span class="hint">(up to ${d.maxAge} years)</span>` : ""}</label>
+        <input id="age" name="age" type="number" inputmode="numeric" min="0" max="120" value="${esc(f.age)}" ${state.errors.age ? 'aria-invalid="true" aria-describedby="err-age"' : ""}>`)}
+      ${fieldWrap("mobile", `<label for="mobile">Mobile number</label>
+        <input id="mobile" name="mobile" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" value="${esc(f.mobile)}" ${state.errors.mobile ? 'aria-invalid="true" aria-describedby="err-mobile"' : ""}>`)}
+      ${fieldWrap("reason", `<label for="reason">Reason for visit</label>
+        <textarea id="reason" name="reason" maxlength="300" ${state.errors.reason ? 'aria-invalid="true" aria-describedby="err-reason"' : ""}>${esc(f.reason)}</textarea>`)}
+    </div>
+    <div class="actions">
+      <button type="button" class="btn ghost" data-action="back">← Back</button>
+      <button type="submit" class="btn">Confirm booking</button>
+    </div>
+  </form>`;
+}
+
+function viewSummary() {
+  const d = state.dept && dept(state.dept);
+  const doc = state.doc && doctor(state.doc);
+  const when = state.date && state.slot ? `${fmtShort(state.date)}, ${fmtTime(state.slot)}` : "—";
+  return `<aside class="card summary" aria-label="Booking summary">
+    <h3>Your booking</h3>
+    <dl>
+      <dt>Department</dt><dd>${d ? d.name : "—"}</dd>
+      <dt>Doctor</dt><dd>${doc ? doc.name : "—"}</dd>
+      <dt>Date and time</dt><dd>${when}</dd>
+    </dl>
+    <div class="fee-line">Fee: ${doc ? "₹" + doc.fee : "—"}</div>
+  </aside>`;
+}
+
+function viewConfirmed() {
+  const b = state.confirmed;
+  const doc = doctor(b.doc);
+  return `<section class="card">
+    <h2 class="confirm-title">✅ Appointment confirmed</h2>
+    <p style="margin:0;font-size:1.15rem">Show this token at the reception counter.</p>
+    <div class="token mono">${b.token}</div>
+    <p style="margin:0;font-size:1.2rem"><strong>${esc(b.name)}</strong> (age ${b.age}) · ${doc.name}, ${dept(doc.dept).name}<br>
+    ${fmtLong(b.date)} at ${fmtTime(b.slot)} · Fee ₹${doc.fee}</p>
+    <div class="actions">
+      <button class="btn" data-action="tab" data-tab="mine">View my appointments</button>
+      <button class="btn ghost" data-action="restart">Book another</button>
+    </div>
+  </section>`;
+}
+
+function viewMine() {
+  if (!bookings.length) {
+    return `<h1 class="page-title">My appointments</h1>
+    <div class="card empty"><p>You have no appointments yet.</p>
+    <button class="btn" data-action="tab" data-tab="book">Book appointment</button></div>`;
+  }
+  // Upcoming first (soonest first), then past/cancelled (most recent first)
+  const rank = { confirmed: 0, completed: 1, cancelled: 2 };
+  const sorted = [...bookings].sort((a, b) => {
+    const sa = statusOf(a), sb = statusOf(b);
+    if (sa !== sb) return rank[sa] - rank[sb];
+    const ta = slotDate(a.date, a.slot), tb = slotDate(b.date, b.slot);
+    return sa === "confirmed" ? ta - tb : tb - ta;
+  });
+  const labels = { confirmed: "Confirmed", completed: "Completed", cancelled: "Cancelled" };
+  return `<h1 class="page-title">My appointments</h1>
+  ${sorted.map((b) => {
+    const doc = doctor(b.doc);
+    const st = statusOf(b);
+    return `<article class="card appt ${st === "cancelled" ? "is-cancelled" : ""}">
+      <div>
+        <div class="who"><strong>${doc.name}</strong> · ${dept(doc.dept).name}</div>
+        <div class="meta">${fmtShort(b.date)}, ${fmtTime(b.slot)} · ${esc(b.name)} · Token <span class="mono">${b.token}</span></div>
+      </div>
+      <div class="side">
+        <span class="badge ${st}">${labels[st]}</span>
+        ${st === "confirmed" ? `<button class="btn ghost small" data-action="ask" data-id="${b.id}">Cancel</button>` : ""}
+      </div>
+    </article>`;
+  }).join("")}`;
+}
+
+function viewDoctors() {
+  return `<h1 class="page-title">Our doctors</h1>
+  <div class="doctors">${DOCTORS.map((d) => `
+    <article class="card doc-card">
+      <span class="dept">${dept(d.dept).name}</span>
+      <h3>${d.name}</h3>
+      <p>${d.qual}</p>
+      <p>${d.exp} years experience · Mon–Sat, 9 am – 5 pm</p>
+      <div class="fee">Consultation fee ₹${d.fee}</div>
+      <button class="btn small" data-action="quickbook" data-id="${d.id}">Book appointment</button>
+    </article>`).join("")}
+  </div>`;
+}
+
+/* ---------- Cancel confirmation (modal) ---------- */
+let lastFocus = null;
+function ask(id) {
+  const b = bookings.find((x) => x.id === id);
+  if (!b) return;
+  const doc = doctor(b.doc);
+  const dm = parseDate(b.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  lastFocus = document.activeElement;
+  $("#modal-root").innerHTML = `<div class="overlay" data-action="close-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+      <h3 id="m-title">Cancel this appointment?</h3>
+      <p>${doc.name} on ${dm} at ${fmtTime(b.slot)}. The slot will become free for others.</p>
+      <div class="actions">
+        <button class="btn ghost" data-action="close-modal" id="keep">Keep it</button>
+        <button class="btn danger" data-action="do-cancel" data-id="${b.id}">Yes, cancel</button>
+      </div>
+    </div></div>`;
+  $("#keep").focus();
+}
+function closeModal() {
+  $("#modal-root").innerHTML = "";
+  if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+}
+
+/* ---------- Validation and booking ---------- */
+function submit() {
+  const f = state.form;
+  const e = {};
+  const name = f.name.trim().replace(/\s+/g, " ");
+  const age = f.age.trim();
+  const mobile = f.mobile.trim();
+  const d = dept(state.dept);
+
+  if (!name) e.name = "Please enter the patient's name.";
+  else if (!/^[A-Za-z][A-Za-z .']*$/.test(name)) e.name = "Name can contain letters only (no numbers or symbols).";
+  else if (name.replace(/[^A-Za-z]/g, "").length < 2) e.name = "Please enter the full name.";
+
+  if (age === "") e.age = "Please enter the patient's age.";
+  else if (!/^\d{1,3}$/.test(age) || +age > 120) e.age = "Age must be a whole number between 0 and 120.";
+  else if (d.maxAge && +age > d.maxAge) e.age = `Paediatrics is for children up to ${d.maxAge} years only.`;
+
+  if (!/^[6-9]\d{9}$/.test(mobile)) e.mobile = "Enter a 10-digit mobile number starting with 6, 7, 8 or 9.";
+
+  if (!f.reason.trim()) e.reason = "Please tell us briefly why you are visiting.";
+
+  state.errors = e;
+  state.alert = "";
+
+  if (!Object.keys(e).length) {
+    // Slot may have been taken in another tab or time passed while filling the form
+    bookings = load();
+    if (taken(state.doc, state.date, state.slot) || past(state.date, state.slot)) {
+      state.alert = "Sorry, this time slot is no longer available. Please go back and choose another.";
+    } else if (bookings.some((b) => b.mobile === mobile && b.doc === state.doc && b.date === state.date && b.status !== "cancelled")) {
+      state.alert = `An appointment with ${doctor(state.doc).name} on ${fmtShort(state.date)} already exists for this mobile number.`;
+    } else {
+      const b = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        token: makeToken(state.date),
+        doc: state.doc, date: state.date, slot: state.slot,
+        name, age: +age, mobile, reason: f.reason.trim(),
+        status: "confirmed", createdAt: new Date().toISOString()
+      };
+      bookings.push(b);
+      save();
+      state.confirmed = b;
+      render(false);
+      return;
+    }
+  }
+  render();
+  const first = document.querySelector(".invalid input, .invalid textarea, .alert");
+  if (first) { first.scrollIntoView({ block: "center", behavior: "smooth" }); if (first.focus) first.focus({ preventScroll: true }); }
+}
+
+function resetBooking() {
+  Object.assign(state, { step: 1, dept: null, doc: null, date: null, slot: null, errors: {}, alert: "", confirmed: null,
+    form: { name: "", age: "", mobile: "", reason: "" } });
+}
+
+/* ---------- Events (delegated) ---------- */
+document.addEventListener("click", (ev) => {
+  const el = ev.target.closest("[data-action]");
+  if (!el || el.disabled) return;
+  const a = el.dataset.action;
+
+  // Clicking the dark overlay closes the modal, but clicks inside the box don't
+  if (a === "close-modal" && el.classList.contains("overlay") && ev.target !== el) return;
+
+  switch (a) {
+    case "tab":
+      if (el.dataset.tab === "book" && state.confirmed) resetBooking();
+      state.tab = el.dataset.tab;
+      if (state.tab === "mine") bookings = load();
+      render(false); break;
+    case "goto": state.step = +el.dataset.step; state.alert = ""; render(false); break;
+    case "back": state.step--; state.alert = ""; render(false); break;
+    case "next": state.step++; render(false); break;
+    case "dept":
+      if (state.dept !== el.dataset.id) { state.doc = null; state.slot = null; state.errors = {}; }
+      state.dept = el.dataset.id;
+      state.step = 2; render(false); break;
+    case "doc":
+      if (state.doc !== el.dataset.id) state.slot = null;
+      state.doc = el.dataset.id; state.step = 3; render(false); break;
+    case "day": state.date = el.dataset.date; state.slot = null; render(); break;
+    case "slot": state.slot = el.dataset.slot; render(); break;
+    case "restart": resetBooking(); render(false); break;
+    case "quickbook": {
+      const d = doctor(el.dataset.id);
+      resetBooking();
+      Object.assign(state, { tab: "book", dept: d.dept, doc: d.id, step: 3 });
+      render(false); break;
+    }
+    case "ask": ask(el.dataset.id); break;
+    case "close-modal": closeModal(); break;
+    case "do-cancel": {
+      bookings = load();
+      const b = bookings.find((x) => x.id === el.dataset.id);
+      if (b) { b.status = "cancelled"; b.cancelledAt = new Date().toISOString(); save(); }
+      closeModal(); render(); break;
+    }
+  }
+});
+
+// Keep typed values in state without re-rendering
+document.addEventListener("input", (ev) => {
+  const t = ev.target;
+  if (t.form && t.form.id === "details" && t.name in state.form) {
+    if (t.name === "mobile") t.value = t.value.replace(/\D/g, "").slice(0, 10);
+    state.form[t.name] = t.value;
+  }
+});
+document.addEventListener("submit", (ev) => {
+  if (ev.target.id === "details") { ev.preventDefault(); submit(); }
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && $("#modal-root").innerHTML) closeModal();
+});
+// Sync if bookings change in another browser tab
+window.addEventListener("storage", (ev) => {
+  if (ev.key === STORAGE_KEY) { bookings = load(); if (!$("#modal-root").innerHTML) render(); }
+});
+
+render(false);
+</script>
+</body>
+</html>
